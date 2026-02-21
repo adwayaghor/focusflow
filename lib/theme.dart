@@ -74,7 +74,7 @@ class AppTheme {
     cardTheme: CardThemeData(
       color: backgroundCard,
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.04),
+      shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius),
       ),
@@ -106,8 +106,7 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: backgroundWarm,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusSm),
         borderSide: const BorderSide(color: border),
@@ -125,29 +124,11 @@ class AppTheme {
     dividerColor: border,
 
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(
-        color: text,
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-      ),
-      bodyMedium: TextStyle(
-        color: textLight,
-        fontSize: 14,
-      ),
-      bodySmall: TextStyle(
-        color: textMuted,
-        fontSize: 12,
-      ),
-      titleLarge: TextStyle(
-        color: text,
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-      ),
-      titleMedium: TextStyle(
-        color: text,
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-      ),
+      bodyLarge: TextStyle(color: text, fontSize: 16, fontWeight: FontWeight.w400),
+      bodyMedium: TextStyle(color: textLight, fontSize: 14),
+      bodySmall: TextStyle(color: textMuted, fontSize: 12),
+      titleLarge: TextStyle(color: text, fontSize: 20, fontWeight: FontWeight.w600),
+      titleMedium: TextStyle(color: text, fontSize: 16, fontWeight: FontWeight.w500),
     ),
   );
 }
