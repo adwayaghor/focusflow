@@ -90,7 +90,7 @@ class OverlayService {
       enableDrag: false,
       overlayTitle: "FocusFlow",
       overlayContent: "Focus session active",
-      flag: OverlayFlag.clickThrough,
+      flag: OverlayFlag.focusPointer,
       visibility: NotificationVisibility.visibilityPublic,
       positionGravity: PositionGravity.none,
       height: WindowSize.matchParent,

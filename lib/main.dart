@@ -24,8 +24,9 @@ void main() async {
 
 /// Overlay entry point - called when the overlay window is shown
 @pragma("vm:entry-point")
-void overlayMain() {
+void overlayMain() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const OverlayWidget());
 }
 

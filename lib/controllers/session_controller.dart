@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import '../overlay/overlay_service.dart';
 
 class SessionController extends GetxController {
@@ -13,6 +15,7 @@ class SessionController extends GetxController {
   final Rx<Duration> elapsed = Duration.zero.obs;
 
   StreamSubscription? _userListener;
+  StreamSubscription? _overlayListener;
   String? _currentSessionId;
 
   // ------------------------------------------------
@@ -22,6 +25,9 @@ class SessionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // Listen for commands from overlay (e.g., end_session)
+    _listenForOverlayCommands();
 
     FirebaseAuth.instance.authStateChanges().listen((user) async {
 
@@ -43,9 +49,21 @@ class SessionController extends GetxController {
     });
   }
 
+  /// Listen for commands sent from the overlay widget
+  void _listenForOverlayCommands() {
+    _overlayListener = FlutterOverlayWindow.overlayListener.listen((data) {
+      developer.log('SessionController: Received overlay command: $data');
+      if (data == 'end_session') {
+        developer.log('SessionController: Processing end_session command');
+        endCurrentSession();
+      }
+    });
+  }
+
   @override
   void onClose() {
     _userListener?.cancel();
+    _overlayListener?.cancel();
     super.onClose();
   }
 
