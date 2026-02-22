@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-import 'theme.dart';
+import '../theme.dart';
+import '../controllers/auth_controller.dart';
 import 'login_page.dart';
 
 class ReportPage extends StatelessWidget {
@@ -11,7 +12,8 @@ class ReportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final authController = Get.find<AuthController>();
+    final user = authController.user;
 
     if (user == null) {
       return Scaffold(
@@ -74,7 +76,7 @@ class ReportPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: AppTheme.textLight, size: 20),
-            onPressed: () => FirebaseAuth.instance.signOut(),
+            onPressed: () => authController.logout(),
           ),
         ],
       ),
@@ -227,7 +229,7 @@ class ReportPage extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.4,
+                childAspectRatio: 1.2,
                 children: [
                   _StatCard(
                     label: 'Avg Focus Score',
@@ -343,40 +345,38 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 18),
-              const Spacer(),
-            ],
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppTheme.text,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 10,
-                ),
-              ),
-            ],
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.text,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontSize: 10,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

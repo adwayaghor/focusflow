@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'theme.dart';
+import 'package:get/get.dart';
+import '../theme.dart';
+import '../controllers/auth_controller.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,9 +20,9 @@ class _LoginPageState extends State<LoginPage> {
   final _yearCtrl = TextEditingController();
 
   bool _isLogin = true;
-  bool _loading = false;
   bool _obscure = true;
-  String? _error;
+
+  final authController = Get.find<AuthController>();
 
   @override
   void dispose() {
@@ -37,37 +37,26 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
 
-    try {
-      if (_isLogin) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailCtrl.text.trim(),
-          password: _passwordCtrl.text,
-        );
-      } else {
-        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailCtrl.text.trim(),
-          password: _passwordCtrl.text,
-        );
-        // Save user profile to Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(cred.user!.uid)
-            .set({
-          'name': _nameCtrl.text.trim(),
-          'email': _emailCtrl.text.trim(),
-          'college': _collegeCtrl.text.trim(),
-          'course': _courseCtrl.text.trim(),
-          'year': _yearCtrl.text.trim(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-      if (mounted) Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message);
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    bool success;
+    if (_isLogin) {
+      success = await authController.login(
+        _emailCtrl.text,
+        _passwordCtrl.text,
+      );
+    } else {
+      success = await authController.signup(
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
+        name: _nameCtrl.text,
+        college: _collegeCtrl.text,
+        course: _courseCtrl.text,
+        year: _yearCtrl.text,
+      );
+    }
+
+    if (success && mounted) {
+      Get.back();
     }
   }
 
@@ -130,25 +119,32 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 28),
 
-              if (_error != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.errorBg,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  ),
-                  child: Row(
+              Obx(() {
+                if (authController.error.isNotEmpty) {
+                  return Column(
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: AppTheme.error, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(_error!, style: const TextStyle(color: AppTheme.error, fontSize: 13)),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorBg,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline_rounded, color: AppTheme.error, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(authController.error.value, style: const TextStyle(color: AppTheme.error, fontSize: 13)),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(height: 16),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
 
               // Signup-only fields
               if (!_isLogin) ...[
@@ -199,11 +195,11 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 28),
 
-              SizedBox(
+              Obx(() => SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  child: _loading
+                  onPressed: authController.isLoading.value ? null : _submit,
+                  child: authController.isLoading.value
                       ? const SizedBox(
                           height: 20,
                           width: 20,
@@ -214,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                         ),
                 ),
-              ),
+              )),
 
               const SizedBox(height: 20),
 
@@ -226,7 +222,12 @@ class _LoginPageState extends State<LoginPage> {
                     style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
                   ),
                   GestureDetector(
-                    onTap: () => setState(() { _isLogin = !_isLogin; _error = null; }),
+                    onTap: () {
+                      setState(() {
+                        _isLogin = !_isLogin;
+                        authController.clearError();
+                      });
+                    },
                     child: Text(
                       _isLogin ? 'Sign Up' : 'Login',
                       style: const TextStyle(

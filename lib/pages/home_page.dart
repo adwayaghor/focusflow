@@ -1,90 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'theme.dart';
+import 'package:get/get.dart';
+import '../theme.dart';
+import '../controllers/auth_controller.dart';
+import '../controllers/navigation_controller.dart';
 import 'login_page.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  bool _overlayGranted = false;
-
-  bool _isSessionActive = false;
-  DateTime? _sessionStartTime;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkPermission();
-  }
-
-  Future<void> _checkPermission() async {
-    final granted = await FlutterOverlayWindow.isPermissionGranted();
-    setState(() => _overlayGranted = granted ?? false);
-  }
-
-  Future<void> _requestPermission() async {
-    await FlutterOverlayWindow.requestPermission();
-    await _checkPermission();
-  }
-
-  Future<void> _toggleOverlay() async {
-    if (!_overlayGranted) {
-      await _requestPermission();
-      return;
-    }
-
-    final active = await FlutterOverlayWindow.isActive();
-
-    if (active) {
-      // 🔴 END SESSION
-      await FlutterOverlayWindow.closeOverlay();
-
-      if (_sessionStartTime != null) {
-        final duration = DateTime.now().difference(_sessionStartTime!);
-
-        // Optional: Save session to Firebase
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          // You can replace with Firestore if needed
-          debugPrint("Session Duration: ${duration.inMinutes} minutes");
-        }
-      }
-
-      setState(() {
-        _isSessionActive = false;
-        _sessionStartTime = null;
-      });
-    } else {
-      // 🟢 START SESSION
-      _sessionStartTime = DateTime.now();
-
-      await FlutterOverlayWindow.showOverlay(
-        enableDrag: false,
-        overlayTitle: "FocusFlowActive",
-        overlayContent: "Focus session running",
-        flag: OverlayFlag.defaultFlag,
-        visibility: NotificationVisibility.visibilityPublic,
-        positionGravity: PositionGravity.auto,
-        height: WindowSize.matchParent,
-        width: WindowSize.matchParent,
-        startPosition: const OverlayPosition(0, 0),
-      );
-
-      setState(() {
-        _isSessionActive = true;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final authController = Get.find<AuthController>();
 
     return SafeArea(
       child: Scaffold(
@@ -117,11 +43,14 @@ class _HomePageState extends State<HomePage> {
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          child: Column(
+          child: Obx(() => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Login Banner (shown when not logged in)
-              if (user == null) ...[_LoginBanner(), const SizedBox(height: 20)],
+              if (!authController.isLoggedIn) ...[
+                _LoginBanner(),
+                const SizedBox(height: 20)
+              ],
 
               // Hero Card
               Container(
@@ -153,10 +82,12 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                     const SizedBox(height: 20),
+                    // Navigate to Session tab using GetX
                     ElevatedButton(
-                      onPressed: _overlayGranted
-                          ? _toggleOverlay
-                          : _requestPermission,
+                      onPressed: () {
+                        // Navigate to session page - the main navigation handles tab switching
+                        Get.find<MainNavigationController>().changeTab(1);
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppTheme.primary,
@@ -166,18 +97,12 @@ class _HomePageState extends State<HomePage> {
                           vertical: 12,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.radiusSm,
-                          ),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                         ),
                       ),
-                      child: Text(
-                        !_overlayGranted
-                            ? 'Grant Permission'
-                            : _isSessionActive
-                            ? 'End Session'
-                            : 'Start Session',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      child: const Text(
+                        'Start a Session →',
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -199,9 +124,9 @@ class _HomePageState extends State<HomePage> {
 
               _StepCard(
                 step: '01',
-                title: 'Enable Overlay',
+                title: 'Sign In',
                 description:
-                    'Grant overlay permission so FocusGuard can monitor your screen usage.',
+                    'Login to your account to track your focus sessions and view analytics.',
                 color: AppTheme.primaryLight,
               ),
               const SizedBox(height: 12),
@@ -209,7 +134,7 @@ class _HomePageState extends State<HomePage> {
                 step: '02',
                 title: 'Start a Session',
                 description:
-                    'Launch the floating widget and begin your focus session.',
+                    'Go to the Session tab, launch the floating widget, and begin focusing.',
                 color: AppTheme.successBg,
               ),
               const SizedBox(height: 12),
@@ -224,14 +149,11 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 24),
 
               // Login CTA if not logged in
-              if (user == null)
+              if (!authController.isLoggedIn)
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                    ),
+                    onPressed: () => Get.to(() => const LoginPage()),
                     icon: const Icon(Icons.login_rounded),
                     label: const Text('Login to unlock Reports & Stats'),
                     style: OutlinedButton.styleFrom(
@@ -245,13 +167,16 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
             ],
-          ),
+          )),
         ),
       ),
     );
   }
 }
 
+// ─────────────────────────────────────────
+// Login Banner
+// ─────────────────────────────────────────
 class _LoginBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -264,11 +189,7 @@ class _LoginBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.info_outline_rounded,
-            color: AppTheme.primary,
-            size: 20,
-          ),
+          const Icon(Icons.info_outline_rounded, color: AppTheme.primary, size: 20),
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
@@ -291,10 +212,7 @@ class _LoginBanner extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text(
-              'Login',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
+            child: const Text('Login', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -302,6 +220,9 @@ class _LoginBanner extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────
+// Step Card
+// ─────────────────────────────────────────
 class _StepCard extends StatelessWidget {
   final String step;
   final String title;
@@ -347,22 +268,15 @@ class _StepCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppTheme.text,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(title,
+                    style: const TextStyle(
+                        color: AppTheme.text,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14)),
                 const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    color: AppTheme.textLight,
-                    fontSize: 13,
-                  ),
-                ),
+                Text(description,
+                    style: const TextStyle(
+                        color: AppTheme.textLight, fontSize: 13)),
               ],
             ),
           ),

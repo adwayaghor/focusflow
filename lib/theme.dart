@@ -5,12 +5,9 @@ class AppTheme {
 
   // ===== Design Token Colors =====
   static const Color primary = Color(0xFFF47D5B);
-  static const Color primaryHover = Color(0xFFE06A48);
   static const Color primaryLight = Color(0xFFFFF0EB);
-  static const Color primaryUltraLight = Color(0xFFFFF7F3);
 
   static const Color secondary = Color(0xFFFFB880);
-  static const Color secondaryLight = Color(0xFFFFF4E8);
 
   static const Color background = Color(0xFFFFFCF9);
   static const Color backgroundWarm = Color(0xFFFFF7F3);
